@@ -1,0 +1,81 @@
+---
+title: "Missing values: MCAR, MAR, and MNAR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Missing values: MCAR, MAR, and MNAR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(datagenerator)
+```
+
+`add_missingness()` takes a synthetic dataset and sets some values to `NA`.
+The **mechanism** decides what the missingness depends on. This matters
+because it decides whether ordinary analyses are biased.
+
+```{r base}
+base <- gen_correlated(
+  n = 2000,
+  means = c(income = 50, age = 45),
+  sds = c(10, 12),
+  cor = matrix(c(1, 0.5, 0.5, 1), 2),
+  seed = 1
+)
+```
+
+## MCAR: missing completely at random
+
+Every value has the same chance of being missing, unrelated to any variable.
+
+```{r mcar}
+m1 <- add_missingness(base, prop = 0.2, mechanism = "MCAR", cols = "income", seed = 2)
+c(mean_observed = mean(m1$income, na.rm = TRUE),
+  mean_original = mean(base$income))
+```
+
+**Interpretation.** About 20% are missing, and the observed mean stays close to
+the original. Dropping incomplete rows is unbiased here, only less precise.
+
+## MAR: missing at random
+
+The chance of missingness depends on an **observed** variable, here `age`.
+Higher `age` means more missing `income`.
+
+```{r mar}
+m2 <- add_missingness(base, prop = 0.2, mechanism = "MAR", driver = "age",
+                      cols = "income", strength = 2, seed = 2)
+c(mean_age_when_income_missing = mean(m2$age[is.na(m2$income)]),
+  mean_age_when_income_observed = mean(m2$age[!is.na(m2$income)]))
+```
+
+**Interpretation.** Rows with missing income are older on average. Dropping
+them biases the mean income. Methods that condition on `age` (such as
+multiple imputation) can correct this when `age` is recorded.
+
+## MNAR: missing not at random
+
+The chance of missingness depends on the **missing value itself**. Here, higher
+incomes are more likely to be hidden.
+
+```{r mnar}
+m3 <- add_missingness(base, prop = 0.2, mechanism = "MNAR", cols = "income",
+                      strength = 2, seed = 2)
+c(mean_income_when_missing = mean(base$income[is.na(m3$income)]),
+  mean_income_when_observed = mean(base$income[!is.na(m3$income)]))
+```
+
+**Interpretation.** The missing incomes were higher on average. The observed
+data cannot show this, so the result depends on an assumption you cannot
+check from the data. Use MNAR to test how sensitive your conclusions are.
+
+## Provenance
+
+Every call records its mechanism and its achieved rate in the provenance
+record:
+
+```{r meta}
+dg_meta(m2)$missingness[c("mechanism", "prop", "strength", "driver", "achieved_rate")]
+```

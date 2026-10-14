@@ -1,0 +1,52 @@
+---
+title: "Responsible use"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Responsible use}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(datagenerator)
+```
+
+Synthetic data is useful for teaching, testing pipelines, and simulation. It is
+also easy to mistake for real data. This vignette lists what to watch for.
+
+## Synthetic is not the same as anonymous
+
+Data generated from parameters you chose has no link to real people. Data
+generated from parameters **estimated from real records** can leak information
+about those records. Stage 2 of this package (fitting to real data) will warn
+before estimating anything from real records. Stage 1 generators only use
+parameters you type in.
+
+## Synthetic data can carry bias
+
+The parameters you choose encode assumptions about a population. A mean income
+of 50 or a 60/30/10 split of categories is a claim about the world. Defaults in
+this package are deliberately neutral and do not encode real-population
+assumptions. Check any parameters you borrow from a source.
+
+## The label stays on the data
+
+Every dataset prints a banner and carries a provenance record:
+
+```{r label}
+x <- gen_numeric(3, mean = 100, sd = 15, seed = 1)
+x
+dg_meta(x)$synthetic
+```
+
+Keep the label when you save, share, or combine data. The label can be lost
+by some operations (for example, many `dplyr` verbs return plain tibbles), so
+recheck with `dg_meta()` before you rely on it.
+
+## Do not use this package to fabricate evidence
+
+Do not generate records, receipts, results, or survey responses and present
+them as observed. Do not use synthetic data to support a research claim unless
+the synthetic nature and its assumptions are stated openly. Synthetic data is a
+tool for testing methods and teaching, not a source of evidence.

@@ -1,0 +1,32 @@
+Package: datagenerator
+Title: Generate Synthetic Datasets with Documented Provenance
+Version: 0.0.0.9000
+Authors@R:
+    person("Matthew", "Vanderbilt", , "rdy2dve@outlook.com", role = c("aut", "cre"))
+Description: Generates synthetic datasets from explicit, validated parameters.
+    Every generator is reproducible from a seed, returns a tibble labelled as
+    synthetic, and records the parameters that produced it. Stage 1 covers
+    numeric, correlated, categorical, date, identifier, grouped, and
+    missing-value structures. Synthetic data is not real data and must not be
+    presented as observed evidence.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+URL: https://github.com/mcvanderbilt/datagenerator
+BugReports: https://github.com/mcvanderbilt/datagenerator/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    cli,
+    stats,
+    tibble,
+    utils,
+    withr
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Language: en-US

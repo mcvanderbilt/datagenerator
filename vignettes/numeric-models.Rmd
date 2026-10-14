@@ -1,0 +1,94 @@
+---
+title: "Numeric generators"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Numeric generators}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(datagenerator)
+```
+
+Every dataset in this vignette is **synthetic**. Its values come from a model
+we chose, not from observed people, patients, or records.
+
+## `gen_numeric()`: one normal variable
+
+**Model.** Each row is an independent draw from $X \sim \text{Normal}(\mu, \sigma^2)$.
+
+**Assumptions.** The values are symmetric and unbounded. Skewed, bounded, or
+count variables will not look like this.
+
+```{r numeric}
+x <- gen_numeric(n = 1000, mean = 50, sd = 10, name = "score", seed = 1)
+x
+c(mean = mean(x$score), sd = stats::sd(x$score))
+```
+
+**Interpretation.** With 1000 rows the sample mean is close to 50. Its
+standard error is about $10 / \sqrt{1000} \approx 0.32$, so being within a
+point or so is expected. The sample standard deviation is close to 10.
+
+## `gen_correlated()`: correlated normal variables
+
+**Model.** The rows are draws from a multivariate normal distribution with
+covariance $\Sigma = D R D$, where $D$ holds the standard deviations and $R$
+is the correlation matrix.
+
+**Assumptions and pitfalls.**
+
+* Dependence is linear. Pearson correlation cannot describe nonlinear or
+  tail-dependent relationships.
+* $R$ must be positive definite. Pairwise plausible correlations can still be
+  jointly impossible, and the function will refuse them.
+
+```{r correlated}
+R <- matrix(c(1, 0.6, 0.3,
+              0.6, 1, 0.5,
+              0.3, 0.5, 1), nrow = 3)
+y <- gen_correlated(
+  n = 2000,
+  means = c(height = 170, weight = 70, age = 45),
+  sds = c(10, 12, 15),
+  cor = R,
+  seed = 1
+)
+round(stats::cor(as.data.frame(y)), 2)
+```
+
+**Interpretation.** The sample correlation matrix is close to `R`. The
+correlations are targets: with 2000 rows they should match to about two
+decimal places.
+
+Try a matrix that is not positive definite to see the refusal:
+
+```{r not-pd, error = TRUE}
+bad <- matrix(c(1, 0.9, -0.9, 0.9, 1, 0.9, -0.9, 0.9, 1), nrow = 3)
+gen_correlated(10, means = c(0, 0, 0), sds = c(1, 1, 1), cor = bad, seed = 1)
+```
+
+## `gen_grouped()`: a random group effect
+
+**Model.** $y_{ij} = \mu + u_j + e_{ij}$, with $u_j \sim \text{Normal}(0, \tau^2)$
+for each group and $e_{ij} \sim \text{Normal}(0, \sigma^2)$ for each row.
+
+The **intraclass correlation** $\rho = \tau^2 / (\tau^2 + \sigma^2)$ is the share
+of total variance that lies between groups.
+
+**Assumptions.** Group effects are independent of each other and of group size.
+Real groups often differ in size in ways related to the outcome, which this
+model cannot represent.
+
+```{r grouped}
+g <- gen_grouped(n_groups = 12, n_per_group = 30,
+                 between_sd = 2, within_sd = 3, seed = 1)
+dg_meta(g)$params$icc
+aggregate(y ~ group, data = as.data.frame(g), FUN = mean)
+```
+
+**Interpretation.** Here $\rho = 4 / (4 + 9) \approx 0.31$, so about 31% of
+the variation is between groups. Group means differ noticeably, but most
+variation is within groups.

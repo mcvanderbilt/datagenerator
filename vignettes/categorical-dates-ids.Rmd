@@ -1,0 +1,72 @@
+---
+title: "Categorical, date, and identifier generators"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Categorical, date, and identifier generators}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(datagenerator)
+```
+
+All values here are **synthetic**.
+
+## `gen_categorical()`: fixed proportions
+
+**Model.** Each row independently takes one level with probability `probs`
+(a multinomial model).
+
+**Assumptions and pitfalls.** The proportions do not depend on any other
+variable. They are targets in expectation: a small sample can differ from them
+noticeably.
+
+```{r categorical}
+resp <- gen_categorical(
+  n = 1000,
+  levels = c("Yes", "No", "Unknown"),
+  probs = c(0.6, 0.3, 0.1),
+  name = "response",
+  seed = 1
+)
+prop.table(table(resp$response))
+```
+
+**Interpretation.** With 1000 rows the realized shares should be within about
+two points of 60%, 30%, and 10%. Repeat with `n = 20` and the shares can
+wander by 10 points or more. That is sampling variation, not a bug.
+
+## `gen_dates()`: uniform calendar days
+
+**Model.** Each row is a day chosen uniformly from the range, inclusive of both
+ends.
+
+**Assumptions.** No weekday effect, seasonality, or trend. Use it to test date
+handling, not to imitate realistic timing.
+
+```{r dates}
+d <- gen_dates(n = 365, start = "2024-01-01", end = "2024-12-31", seed = 1)
+range(d$date)
+table(format(d$date, "%m"))
+```
+
+**Interpretation.** Each month holds roughly its share of days, about 30 in a
+typical month, with random variation from sampling.
+
+## `gen_ids()`: unique labels
+
+**Model.** The integers `1` to `n` are shuffled and given a prefix and
+zero-padding.
+
+**Pitfall.** These are arbitrary labels with no check digit and no link to any
+real record. Do not use generated IDs that look like real identifiers, such as
+medical record numbers, because they can be mistaken for real records.
+
+```{r ids}
+gen_ids(n = 8, prefix = "P-", seed = 1)
+```
+
+**Interpretation.** Every ID is unique, and the shuffled order does not reveal
+how the IDs were assigned.
